@@ -8,10 +8,12 @@ It leverages my basic ML - https://github.com/tomasmcguinness/ml-python-heatpump
 
 ## Running
 To run this, you'll need to start both the backend.
+- The npm install command automatically installs all dependencies listed in the package.json
 
 For the backend
-```
+```shell
 cd Backend
+npm install
 node HeatPumpDevice.js
 ```
 
