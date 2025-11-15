@@ -19,6 +19,10 @@ import { ElectricalEnergyMeasurementServer } from "@matter/main/behaviors/electr
 import { TemperatureMeasurementServer } from "@matter/main/behaviors/temperature-measurement";
 import { ThermostatServer } from "@matter/main/behaviors/thermostat";
 import { FlowMeasurementServer } from "@matter/main/behaviors/flow-measurement";
+import { DescriptorServer } from "@matter/main/behaviors/descriptor";
+
+// Tags
+import { NumberTag, PowerSourceTag } from '@matter/node';
 
 // Clusters
 import { PowerSource } from "@matter/main/clusters/power-source";
@@ -45,6 +49,7 @@ const node = new ServerNode({
 });
 
 var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
+    DescriptorServer.with("TagList"),
     PowerSourceServer.with("Wired"),
     PowerTopologyServer.with("NodeTopology"),
     ElectricalPowerMeasurementServer.with("AlternatingCurrent"),
@@ -53,9 +58,15 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
     DeviceEnergyManagementModeServer,
 ), {
     id: "heat-pump",
-    // heatPump: {
-    //     tagList: [PowerSourceNs.Grid],
-    // },
+    descriptor: {
+        tagList: [
+            {
+                mfgCode: null,
+                namespaceId: PowerSourceTag.Grid.namespaceId,
+                tag: PowerSourceTag.Grid.tag,
+            },
+        ],
+    },    
     powerSource: {
         status: 1,
         order: 1,
@@ -154,18 +165,42 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
     }
 });
 
-var flowSensorEndpoint = await node.add(TemperatureSensorDevice.with(TemperatureMeasurementServer), {
+var flowSensorEndpoint = await node.add(TemperatureSensorDevice.with(TemperatureMeasurementServer, DescriptorServer.with("TagList")), {
     id: "flow-temperature-sensor",
-    temperatureMeasurement: {}
+    temperatureMeasurement: {},
+    // Expose a tag on the Descriptor cluster for this endpoint
+    descriptor: {
+        tagList: [
+            {
+                mfgCode: null,
+                namespaceId: NumberTag.One.namespaceId,
+                tag: NumberTag.One.tag,
+                label: "Flow",
+            },
+        ],
+    }
+
 });
 
 // New endpoint: Flow sensor publishing FlowMeasurement cluster
-var flowMeterEndpoint = await node.add(FlowSensorDevice.with(FlowMeasurementServer), {
+// tagList: [{ mfgCode: null, namespaceId: NumberTag.One.namespaceId, tag: NumberTag.One.tag, label: 'Flow' }],
+var flowMeterEndpoint = await node.add(FlowSensorDevice.with(FlowMeasurementServer, DescriptorServer.with("TagList")), {
     id: "flow-sensor",
     flowMeasurement: {
         measuredValue: null,
         minMeasuredValue: 0,
         maxMeasuredValue: 65533,
+    },
+    // Expose a tag on the Descriptor cluster for this endpoint
+    descriptor: {
+        tagList: [
+            {
+                mfgCode: null,
+                namespaceId: NumberTag.One.namespaceId,
+                tag: NumberTag.One.tag,
+                label: "Flow",
+            },
+        ],
     }
 });
 
