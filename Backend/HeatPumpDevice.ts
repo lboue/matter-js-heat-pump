@@ -7,6 +7,7 @@ import { MeasurementType } from "@matter/main/types";
 import { HeatPumpDevice } from "@matter/main/devices/heat-pump";
 import { ThermostatDevice } from "@matter/main/devices/thermostat";
 import { TemperatureSensorDevice } from "@matter/main/devices/temperature-sensor"
+import { FlowSensorDevice } from "@matter/main/devices/flow-sensor"
 import { HeatPumpDeviceLogic } from "./HeatPumpDeviceLogic.js";
 import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.js";
 import { PowerSourceServer } from "@matter/main/behaviors/power-source";
@@ -42,8 +43,7 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
     PowerTopologyServer.with("NodeTopology"),
     ElectricalPowerMeasurementServer.with("AlternatingCurrent"),
     ElectricalEnergyMeasurementServer.with("ImportedEnergy", "CumulativeEnergy"),
-    DeviceEnergyManagementServer.with("PowerForecastReporting"),
-    FlowMeasurementServer
+    DeviceEnergyManagementServer.with("PowerForecastReporting")
 ), {
     id: "heat-pump",
     // heatPump: {
@@ -86,12 +86,6 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
             energy: 422000000,
         }
     },
-    flowMeasurement: {
-        measuredValue: null,
-        minMeasuredValue: 0,
-        maxMeasuredValue: 65533,
-        // tolerance: 0, // optional
-    },
     deviceEnergyManagement: {
         esaType: DeviceEnergyManagement.EsaType.SpaceHeating,
         esaState: DeviceEnergyManagement.EsaState.Online,
@@ -128,6 +122,16 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
 var flowSensorEndpoint = await node.add(TemperatureSensorDevice.with(TemperatureMeasurementServer), {
     id: "flow-temperature-sensor",
     temperatureMeasurement: {}
+});
+
+// New endpoint: Flow sensor publishing FlowMeasurement cluster
+var flowMeterEndpoint = await node.add(FlowSensorDevice.with(FlowMeasurementServer), {
+    id: "flow-sensor",
+    flowMeasurement: {
+        measuredValue: null,
+        minMeasuredValue: 0,
+        maxMeasuredValue: 65533,
+    }
 });
 
 var now = new Date();
@@ -444,7 +448,7 @@ async function updateSystem() {
     const litersPerMinute = flowRate * 60;
     // FlowMeasurement.MeasuredValue is uint16, spec-constrained by Min/Max; unit: 0.1 L/min
     const measuredFlow = Math.max(0, Math.min(65533, Math.round(litersPerMinute * 10)));
-    await heatpumpEndpoint.setStateOf(FlowMeasurementServer, {
+    await flowMeterEndpoint.setStateOf(FlowMeasurementServer, {
         measuredValue: measuredFlow,
     });
     
