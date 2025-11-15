@@ -12,6 +12,7 @@ import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.js";
 import { PowerSourceServer } from "@matter/main/behaviors/power-source";
 import { PowerTopologyServer } from "@matter/main/behaviors/power-topology";
 import { DeviceEnergyManagementServer } from "@matter/main/behaviors/device-energy-management";
+import { DeviceEnergyManagement } from "@matter/main/clusters/device-energy-management";
 import { ElectricalPowerMeasurementServer } from "@matter/main/behaviors/electrical-power-measurement";
 import { ElectricalEnergyMeasurementServer } from "@matter/main/behaviors/electrical-energy-measurement";
 import { TemperatureMeasurementServer } from "@matter/main/behaviors/temperature-measurement";
@@ -80,6 +81,17 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
         }
     },
     deviceEnergyManagement: {
+        esaType: DeviceEnergyManagement.EsaType.SpaceHeating,
+        esaState: DeviceEnergyManagement.EsaState.Online,
+        forecast: {
+            forecastId: 0,
+            activeSlotNumber: null,
+            startTime: 0,
+            endTime: 0,
+            isPausable: false,
+            slots: [],
+            forecastUpdateReason: 0
+        }
     }
 });
 
