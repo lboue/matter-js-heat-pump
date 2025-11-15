@@ -2,7 +2,7 @@ import express from "express";
 import http from "http"
 import { Server } from "socket.io";
 import cors from "cors";
-import { ServerNode, Logger /*, Bytes */ } from "@matter/main";
+import { ServerNode, Logger, Bytes } from "@matter/main";
 import { MeasurementType } from "@matter/main/types";
 import { HeatPumpDevice } from "@matter/main/devices/heat-pump";
 import { ThermostatDevice } from "@matter/main/devices/thermostat";
@@ -158,6 +158,40 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
         piHeatingDemand: 0, // Initial heating demand in percent (0-100)
+        // Matter Schedule Configuration extension attributes
+        scheduleTypes: [{
+            systemMode: 4, // Heating,
+            numberOfSchedules: 10,
+            scheduleTypeFeatures: {
+                supportsSetpoints: true,
+            }
+        }],
+        numberOfSchedules: 1,
+        numberOfScheduleTransitions: 5,
+        activeScheduleHandle: Bytes.fromHex("0001"),
+        schedules: [{
+            scheduleHandle: Bytes.fromHex("0001"),
+            systemMode: 4,
+            name: "Default Heating Schedule",
+            transitions: [{
+                dayOfWeek: {
+                    monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: true
+                },
+                heatingSetpoint: 2100,
+                transitionTime: 330,
+                systemMode: 4
+            },
+            {
+                dayOfWeek: {
+                    monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: true
+                },
+                heatingSetpoint: 1600,
+                transitionTime: 1380,
+                systemMode: 4
+            }],
+            builtIn: true,
+        }],
+        // setpointChange 
         setpointChangeSource: Thermostat.SetpointChangeSource.Manual, // Default: Manual
         setpointChangeAmount: null, // Default: null
         setpointChangeSourceTimestamp: 0, // Default: 0
@@ -587,3 +621,26 @@ function updateClients() {
 }
 
 await updateSystem();
+
+// Apply the heating schedule at the start of each hour
+var lastScheduleAppliedHour = currentHour;
+
+async function applyScheduleForCurrentHour() {
+    const now = new Date();
+    const hour = now.getHours();
+
+    if (hour !== lastScheduleAppliedHour) {
+        currentHour = hour;
+
+        const matching = heatingSchedule.find(hs => hs.hour <= currentHour && hs.endHour >= currentHour);
+        if (matching) {
+            currentHeatingScheduleIndex = heatingSchedule.indexOf(matching);
+            await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matching.targetTemperature * 100 } as any);
+            await updateSystem();
+        }
+
+        lastScheduleAppliedHour = hour;
+    }
+}
+
+setInterval(() => { void applyScheduleForCurrentHour(); }, 60 * 1000);
