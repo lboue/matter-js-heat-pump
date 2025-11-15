@@ -272,20 +272,28 @@ const params = {
 
 const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${params.latitude}&longitude=${params.longitude}&timezone=${params.timezone}&hourly=temperature_2m&start_date=${params.start_date}&end_date=${params.end_date}`;
 
-const response = await fetch(url);
+// Default temperature data in case fetch fails
+let temperatureByHour = Array.from({ length: 24 }, (_, i) => ({
+    hour: i,
+    temperature: 10 + Math.sin(i / 24 * Math.PI * 2) * 5 // Simulate daily temperature variation
+}));
 
-const responseData: any = await response.json();
+try {
+    const response = await fetch(url);
+    const responseData: any = await response.json();
+    const hourlyData = responseData.hourly;
 
-const hourlyData = responseData.hourly;
-
-const temperatureByHour = hourlyData.time.map((t: any, i: number) => {
-    var time = new Date(t);
-
-    return {
-        hour: time.getHours(),
-        temperature: hourlyData.temperature_2m[i]
-    }
-});
+    temperatureByHour = hourlyData.time.map((t: any, i: number) => {
+        var time = new Date(t);
+        return {
+            hour: time.getHours(),
+            temperature: hourlyData.temperature_2m[i]
+        }
+    });
+    console.log("Weather forecast loaded successfully");
+} catch (error) {
+    console.log("Failed to fetch weather forecast, using default temperature data:", error);
+}
 
 var heatingSchedule = [
     {
