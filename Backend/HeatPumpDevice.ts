@@ -157,6 +157,9 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         minHeatSetpointLimit: 700, // 7.00 °C,
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
+        temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff, // Follow scheduling program
+        temperatureSetpointHoldDuration: null, // TODO: update when hold is active
+        thermostatProgrammingOperationMode: { scheduleActive: true, autoRecovery: true },
         piHeatingDemand: 0, // Initial heating demand in percent (0-100)
         // Matter Schedule Configuration extension attributes
         scheduleTypes: [{
@@ -194,7 +197,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         // setpointChange 
         setpointChangeSource: Thermostat.SetpointChangeSource.Manual, // Default: Manual
         setpointChangeAmount: null, // Default: null
-        setpointChangeSourceTimestamp: 0, // Default: 0
+        setpointChangeSourceTimestamp: 0, // Default: 0 // TODO: Update when setpoint is changed
         thermostatRunningState: { heat: false, cool: false, fan: false, heatStage2: false, coolStage2: false, fanStage2: false, fanStage3: false }, // Initial: all flags off
     }
 });
