@@ -340,6 +340,8 @@ app.get("/status", (_, response) => {
         currentHour,
         targetTemperature: thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
+        piHeatingDemand: thermostatEndpoint.state.thermostat.piHeatingDemand,
+        thermostatRunningState: thermostatEndpoint.state.thermostat.thermostatRunningState,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
         // activeHotWaterScheduleIndex: currentHotWaterScheduleIndex // Not currently used
     };
