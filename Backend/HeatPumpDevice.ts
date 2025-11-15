@@ -19,9 +19,14 @@ import { ElectricalEnergyMeasurementServer } from "@matter/main/behaviors/electr
 import { TemperatureMeasurementServer } from "@matter/main/behaviors/temperature-measurement";
 import { ThermostatServer } from "@matter/main/behaviors/thermostat";
 import { FlowMeasurementServer } from "@matter/main/behaviors/flow-measurement";
+
+// Clusters
 import { PowerSource } from "@matter/main/clusters/power-source";
 import { Thermostat } from "@matter/main/clusters/thermostat";
+import { DeviceEnergyManagementMode } from "@matter/main/clusters/device-energy-management-mode";
+
 import fs from "fs";
+import { DeviceEnergyManagementModeServer } from "@matter/main/behaviors/device-energy-management-mode";
 
 const logger = Logger.get("ComposedDeviceNode");
 
@@ -44,7 +49,8 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
     PowerTopologyServer.with("NodeTopology"),
     ElectricalPowerMeasurementServer.with("AlternatingCurrent"),
     ElectricalEnergyMeasurementServer.with("ImportedEnergy", "CumulativeEnergy"),
-    DeviceEnergyManagementServer.with("PowerForecastReporting")
+    DeviceEnergyManagementServer.with("PowerForecastReporting"),
+    DeviceEnergyManagementModeServer,
 ), {
     id: "heat-pump",
     // heatPump: {
@@ -101,7 +107,30 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
             slots: [],
             forecastUpdateReason: 0
         }
+    },
+    // DeviceEnergyManagementModeServer
+    // Use ModeBase-style definitions: each supported mode needs a numeric mode id and label.
+    deviceEnergyManagementMode: {
+        currentMode: 0,
+        supportedModes: [
+            {
+                label: "No optimization",
+                mode: 0,
+                modeTags: [{ value: DeviceEnergyManagementMode.ModeTag.NoOptimization }],
+            },
+            {
+                label: "Local optimization",
+                mode: 1,
+                modeTags: [{ value: DeviceEnergyManagementMode.ModeTag.LocalOptimization }],
+            },
+            {
+                label: "Grid optimization",
+                mode: 2,
+                modeTags: [{ value: DeviceEnergyManagementMode.ModeTag.GridOptimization }],
+            },
+        ],
     }
+
 });
 
 var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostatServer), {
