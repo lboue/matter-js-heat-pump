@@ -18,16 +18,17 @@ export class HeatPumpDeviceLogic extends Behavior {
         const thermostatEndpoint = node.parts.get("heat-pump-thermostat");
         
         if (thermostatEndpoint) {
-            const thermostatBehavior = await thermostatEndpoint.behaviors.get(HeatPumpThermostatServer);
-            
-            if (thermostatBehavior) {
-                this.reactTo(thermostatBehavior.events.systemMode$Changed, this.#handleSystemModeChanged, {
+            // Use actWith to access the thermostat behavior
+            await thermostatEndpoint.act(async agent => {
+                const thermostat = agent.get(HeatPumpThermostatServer);
+                
+                this.reactTo(thermostat.events.systemMode$Changed, this.#handleSystemModeChanged, {
                     offline: true,
                 });
-                this.reactTo(thermostatBehavior.events.occupiedHeatingSetpoint$Changed, this.#handleOccupiedHeatingSetpointChanged, {
+                this.reactTo(thermostat.events.occupiedHeatingSetpoint$Changed, this.#handleOccupiedHeatingSetpointChanged, {
                     offline: true,
                 });
-            }
+            });
         }
     }
 
