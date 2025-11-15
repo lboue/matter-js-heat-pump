@@ -432,6 +432,11 @@ async function updateSystem() {
         measuredValue: flowTemperature * 100,
     });
 
+    // Update outdoor temperature on thermostat
+    await thermostatEndpoint.setStateOf(ThermostatServer, {
+        outdoorTemperature: outdoorTemperature * 100, // Convert to 0.01°C units
+    } as any);
+
     console.log({ heatRequired, flowTemperature, flowRate, outdoorTemperature });
 
     // Calculate and update PIHeatingDemand first
