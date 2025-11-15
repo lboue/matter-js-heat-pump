@@ -507,16 +507,30 @@ server.listen(PORT, () => {
 });
 
 /***
- * ML - Load the linear regression model
+ * ML - Load the linear regression model (lazy to avoid TDZ issues)
  ***/
 
-const data = fs.readFileSync('./model/model_params.json', 'utf8');
-const modelParams = JSON.parse(data);
+let modelParams: any | null = null;
+
+function ensureModelLoaded() {
+    if (!modelParams) {
+        try {
+            const data = fs.readFileSync('./model/model_params.json', 'utf8');
+            modelParams = JSON.parse(data);
+        } catch {
+            modelParams = { intercept: 0, coef: [] };
+        }
+    }
+}
 
 function predict(features: any) {
-    let prediction = modelParams.intercept;
+    ensureModelLoaded();
+    const params = modelParams as any;
+    let prediction = params.intercept ?? 0;
+    const coefs = Array.isArray(params.coef) ? params.coef : [];
     for (let i = 0; i < features.length; i++) {
-        prediction += features[i] * modelParams.coef[i];
+        const c = coefs[i] ?? 0;
+        prediction += features[i] * c;
     }
     return prediction;
 }
