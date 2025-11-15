@@ -1,6 +1,6 @@
 import { Behavior, ElectricalMeasurementTag, Node } from "@matter/main";
 import { Thermostat } from "@matter/main/clusters/thermostat";
-import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.ts";
+import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.js";
 import { ElectricalPowerMeasurementServer } from "@matter/main/behaviors/electrical-power-measurement";
 
 export class HeatPumpDeviceLogic extends Behavior {

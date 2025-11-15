@@ -7,8 +7,8 @@ import { MeasurementType } from "@matter/main/types";
 import { HeatPumpDevice } from "@matter/main/devices/heat-pump";
 import { ThermostatDevice } from "@matter/main/devices/thermostat";
 import { TemperatureSensorDevice } from "@matter/main/devices/temperature-sensor"
-import { HeatPumpDeviceLogic } from "./HeatPumpDeviceLogic.ts";
-import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.ts";
+import { HeatPumpDeviceLogic } from "./HeatPumpDeviceLogic.js";
+import { HeatPumpThermostatServer } from "./HeatPumpThermostatServer.js";
 import { PowerSourceServer } from "@matter/main/behaviors/power-source";
 import { PowerTopologyServer } from "@matter/main/behaviors/power-topology";
 import { DeviceEnergyManagementServer } from "@matter/main/behaviors/device-energy-management";
@@ -22,13 +22,12 @@ import fs from "fs";
 const logger = Logger.get("ComposedDeviceNode");
 
 const node = new ServerNode({
-    id: "heat-pump",
     productDescription: {},
     basicInformation: {
         vendorName: "ACME Corporation",
         productName: "Seld-M-Break Heat Pump",
-        vendorId: 0xfff1,
-        productId: 0x8000,
+        vendorId: 0xfff1 as any,
+        productId: 0x8000 as any,
         serialNumber: "1234-5665-4321",
     },
 });
@@ -81,7 +80,6 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
         }
     },
     deviceEnergyManagement: {
-        optOutState: 1, // Opted In
     }
 });
 
@@ -138,11 +136,11 @@ var currentHour = now.getHours();
 var currentHeatingScheduleIndex = 0;
 var currentHotWaterScheduleIndex = 0;
 
-thermostatEndpoint.events.thermostat.systemMode$Changed.on(async value => {
+thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
     await updateSystem();
 });
 
-thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async value => {
+thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
     await updateSystem();
 });
 
@@ -159,7 +157,7 @@ async function updateForecast() {
         //
         await heatpumpEndpoint.setStateOf(DeviceEnergyManagementServer, {
             forecast: null
-        });
+        } as any);
 
     }
     else {
@@ -175,7 +173,7 @@ async function updateForecast() {
 
             var matchingHeatingSchedule = heatingSchedule.find(hs => hs.hour <= hour && hs.endHour >= hour);
 
-            var matchingHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule);
+            var matchingHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule!);
 
             if (matchingHeatingScheduleIndex != currentHeatingScheduleIndex) {
                 currentHeatingScheduleIndex = matchingHeatingScheduleIndex;
@@ -187,9 +185,9 @@ async function updateForecast() {
                 powerUsagePerHour = [];
             }
 
-            var outdoorTemperature = temperatureByHour.find(t => t.hour == hour).temperature;
+            var outdoorTemperature = (temperatureByHour.find((t: any) => t.hour == hour)?.temperature) ?? 0;
 
-            var deltaT = matchingHeatingSchedule?.targetTemperature - outdoorTemperature;
+            var deltaT = (matchingHeatingSchedule?.targetTemperature ?? 20) - outdoorTemperature;
 
             var heatRequired = deltaT * 200;
 
@@ -216,7 +214,7 @@ async function updateForecast() {
         today.setHours(currentHour, 0, 0, 0); // Get midnight today
         const s = today.getTime() / 1000;
 
-        var forecastSlots = [];
+        var forecastSlots: any[] = [];
 
         slots.forEach(slot => {
 
@@ -252,7 +250,7 @@ async function updateForecast() {
                 slots: forecastSlots,
                 forecastUpdateReason: 0
             }
-        });
+        } as any);
     }
 }
 
@@ -279,9 +277,9 @@ var heatingSchedule = [
 ];
 
 var matchingHeatingSchedule = heatingSchedule.find(hs => hs.hour <= currentHour && hs.endHour >= currentHour);
-currentHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule);
+currentHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule!);
 
-await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matchingHeatingSchedule.targetTemperature * 100 });
+await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matchingHeatingSchedule!.targetTemperature * 100 } as any);
 
 const app = express();
 app.use(express.json());
@@ -400,11 +398,11 @@ const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${params.lat
 
 const response = await fetch(url);
 
-const responseData = await response.json();
+const responseData: any = await response.json();
 
 const hourlyData = responseData.hourly;
 
-const temperatureByHour = hourlyData.time.map((t, i) => {
+const temperatureByHour = hourlyData.time.map((t: any, i: number) => {
     var time = new Date(t);
 
     return {
@@ -415,7 +413,7 @@ const temperatureByHour = hourlyData.time.map((t, i) => {
 
 async function updateSystem() {
 
-    var outdoorTemperature = temperatureByHour.find(t => t.hour == currentHour).temperature;
+    var outdoorTemperature = (temperatureByHour.find((t: any) => t.hour == currentHour)?.temperature) ?? 0;
 
     var targetTemperature = thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100;
 
@@ -460,7 +458,7 @@ function updateClients() {
         systemMode: thermostatEndpoint.state.thermostat.systemMode,
         currentHour,
         targetTemperature: thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100,
-        flowTemperature: flowSensorEndpoint.state.temperatureMeasurement.measuredValue / 100,
+        flowTemperature: (flowSensorEndpoint.state.temperatureMeasurement.measuredValue ?? 0) / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
         activeHotWaterScheduleIndex: currentHotWaterScheduleIndex
