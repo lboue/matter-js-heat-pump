@@ -159,6 +159,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
         temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff, // Follow scheduling program
         temperatureSetpointHoldDuration: null, // TODO: update when hold is active
+        setpointHoldExpiryTimestamp: null,
         thermostatProgrammingOperationMode: { scheduleActive: true, autoRecovery: true },
         piHeatingDemand: 0, // Initial heating demand in percent (0-100)
         // Matter Schedule Configuration extension attributes
@@ -197,7 +198,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         // setpointChange 
         setpointChangeSource: Thermostat.SetpointChangeSource.Manual, // Default: Manual
         setpointChangeAmount: null, // Default: null
-        setpointChangeSourceTimestamp: 0, // Default: 0 // TODO: Update when setpoint is changed
+        setpointChangeSourceTimestamp: 0, // Default: 0
         thermostatRunningState: { heat: false, cool: false, fan: false, heatStage2: false, coolStage2: false, fanStage2: false, fanStage3: false }, // Initial: all flags off
     }
 });
@@ -449,9 +450,12 @@ thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (v
     
     // When setpoint is manually changed, enable setpoint hold to override the schedule
     isUpdatingSetpointAttributes = true;
+    let holdDuration = 30; // Hold for 30 minutes
     try {
         await thermostatEndpoint.setStateOf(ThermostatServer, {
             temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
+            temperatureSetpointHoldDuration: holdDuration,
+            setpointHoldExpiryTimestamp: Math.floor(Date.now() / 1000) + (holdDuration * 60), // Current time + holdDuration minutes
             setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
             setpointChangeAmount: changeAmount,
             setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
