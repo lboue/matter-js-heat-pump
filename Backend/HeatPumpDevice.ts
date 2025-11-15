@@ -433,12 +433,31 @@ async function updateSystem() {
 
     console.log({ heatRequired, flowTemperature, flowRate, outdoorTemperature });
 
+    // Calculate and update PIHeatingDemand first
+    // This is the level of heating demanded by the PI loop in percent (0-100)
+    var piHeatingDemand = 0;
+    const localTemp = thermostatEndpoint.state.thermostat.localTemperature;
+    if (localTemp !== null) {
+        const localTemperature = localTemp / 100; // Convert from 0.01°C units
+        const setpoint = thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100;
+        const temperatureDelta = setpoint - localTemperature;
+        
+        // Calculate demand as a percentage based on temperature delta
+        // Maximum delta is assumed to be 5°C for 100% demand
+        const maxDelta = 5.0;
+        piHeatingDemand = Math.max(0, Math.min(100, Math.round((temperatureDelta / maxDelta) * 100)));
+    }
+
     var power: number = 0;
 
-    // If we're heating the house or the hot water, we're pulling power!
-    //
+    // Compute power based on heating mode and demand
     if (thermostatEndpoint.state.thermostat.systemMode === 4) {
+        // Heating mode: use full predicted power
         power = predict([flowTemperature, flowRate, outdoorTemperature]) * 1000; // mW;
+    } else {
+        // System off: show potential power based on PI demand (for monitoring/UI feedback)
+        const potentialPower = predict([flowTemperature, flowRate, outdoorTemperature]) * 1000;
+        power = (potentialPower * piHeatingDemand) / 100;
     }
 
     var currentPower = Math.floor(power);
@@ -455,23 +474,7 @@ async function updateSystem() {
         measuredValue: measuredFlow,
     });
     
-    // Calculate and update PIHeatingDemand
-    // This is the level of heating demanded by the PI loop in percent (0-100)
-    var piHeatingDemand = 0;
-    if (thermostatEndpoint.state.thermostat.systemMode === 4) { // Heating mode
-        const localTemp = thermostatEndpoint.state.thermostat.localTemperature;
-        if (localTemp !== null) {
-            const localTemperature = localTemp / 100; // Convert from 0.01°C units
-            const setpoint = thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100;
-            const temperatureDelta = setpoint - localTemperature;
-            
-            // Calculate demand as a percentage based on temperature delta
-            // Maximum delta is assumed to be 5°C for 100% demand
-            const maxDelta = 5.0;
-            piHeatingDemand = Math.max(0, Math.min(100, Math.round((temperatureDelta / maxDelta) * 100)));
-        }
-    }
-    
+    // Update PIHeatingDemand (calculated earlier in this function)
     await thermostatEndpoint.setStateOf(ThermostatServer, {
         piHeatingDemand: piHeatingDemand,
     } as any);
