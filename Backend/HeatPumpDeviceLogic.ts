@@ -13,13 +13,22 @@ export class HeatPumpDeviceLogic extends Behavior {
     }
 
     async #initializeNode() {
-        const operationalState = await this.agent.load(HeatPumpThermostatServer);
-        this.reactTo(operationalState.events.systemMode$Changed, this.#handleSystemModeChanged, {
-            offline: true,
-        });
-        this.reactTo(operationalState.events.occupiedHeatingSetpoint$Changed, this.#handleOccupiedHeatingSetpointChanged, {
-            offline: true,
-        });
+        // Access the thermostat endpoint from the parent node
+        const node = this.endpoint.owner as Node;
+        const thermostatEndpoint = node.parts.get("heat-pump-thermostat");
+        
+        if (thermostatEndpoint) {
+            const thermostatBehavior = await thermostatEndpoint.behaviors.get(HeatPumpThermostatServer);
+            
+            if (thermostatBehavior) {
+                this.reactTo(thermostatBehavior.events.systemMode$Changed, this.#handleSystemModeChanged, {
+                    offline: true,
+                });
+                this.reactTo(thermostatBehavior.events.occupiedHeatingSetpoint$Changed, this.#handleOccupiedHeatingSetpointChanged, {
+                    offline: true,
+                });
+            }
+        }
     }
 
     async #handleSystemModeChanged(newMode: Thermostat.SystemMode, oldMode: Thermostat.SystemMode) {
