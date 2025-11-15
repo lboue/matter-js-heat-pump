@@ -247,16 +247,25 @@ var currentHour = now.getHours();
 var currentHeatingScheduleIndex = 0;
 // var currentHotWaterScheduleIndex = 0; // Not currently used
 
+// Track previous setpoint to calculate change amount
+var previousSetpoint = 2000; // Initial default value
+
 thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
     await updateSystem();
 });
 
 thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
+    // Calculate the change amount (new value - previous value)
+    const changeAmount = value - previousSetpoint;
+    
+    // Update previous setpoint for next change
+    previousSetpoint = value;
+    
     // When setpoint is manually changed, enable setpoint hold to override the schedule
     await thermostatEndpoint.setStateOf(ThermostatServer, {
         temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
         setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
-        setpointChangeAmount: value - thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint,
+        setpointChangeAmount: changeAmount,
         setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
     } as any);
     
@@ -433,7 +442,9 @@ var heatingSchedule = [
 var matchingHeatingSchedule = heatingSchedule.find(hs => hs.hour <= currentHour && hs.endHour >= currentHour);
 currentHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule!);
 
-await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matchingHeatingSchedule!.targetTemperature * 100 } as any);
+// Initialize the setpoint based on current schedule
+previousSetpoint = matchingHeatingSchedule!.targetTemperature * 100;
+await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: previousSetpoint } as any);
 // Reinforce a default indoor temperature after initialization
 await thermostatEndpoint.setStateOf(ThermostatServer, { localTemperature: 1800 } as any);
 
@@ -660,9 +671,14 @@ async function applyScheduleForCurrentHour() {
         const matching = heatingSchedule.find(hs => hs.hour <= currentHour && hs.endHour >= currentHour);
         if (matching) {
             currentHeatingScheduleIndex = heatingSchedule.indexOf(matching);
+            const newSetpoint = matching.targetTemperature * 100;
+            
+            // Update previousSetpoint for next manual change
+            previousSetpoint = newSetpoint;
+            
             // When schedule is automatically applied, turn off setpoint hold
             await thermostatEndpoint.setStateOf(ThermostatServer, { 
-                occupiedHeatingSetpoint: matching.targetTemperature * 100,
+                occupiedHeatingSetpoint: newSetpoint,
                 temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff,
                 setpointChangeSource: Thermostat.SetpointChangeSource.Schedule,
                 setpointChangeAmount: null,
