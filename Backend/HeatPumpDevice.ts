@@ -542,14 +542,6 @@ async function updateSystem() {
         activePower: currentPower,
     });
 
-    // Publish flow as Flow Measurement cluster value in 0.1 L/min units
-    const litersPerMinute = flowRate * 60;
-    // FlowMeasurement.MeasuredValue is uint16, spec-constrained by Min/Max; unit: 0.1 L/min
-    const measuredFlow = Math.max(0, Math.min(65533, Math.round(litersPerMinute * 10)));
-    await flowMeterEndpoint.setStateOf(FlowMeasurementServer, {
-        measuredValue: measuredFlow,
-    });
-    
     // Update PIHeatingDemand and ThermostatRunningState (calculated earlier in this function)
     // ThermostatRunningState bitmap: bit 0 = Heat State On (0x01), bit 1 = Cool State On (0x02)
     // Running when system is in heating mode and there's demand
@@ -560,6 +552,18 @@ async function updateSystem() {
         piHeatingDemand: piHeatingDemand,
         thermostatRunningState: thermostatRunningState,
     } as any);
+
+    // Publish flow as Flow Measurement only when heating is running
+    // Unit: 0.1 L/min, uint16, constrained by Min/Max
+    {
+        const litersPerMinute = flowRate * 60;
+        const measuredFlow = isHeating
+            ? Math.max(0, Math.min(65533, Math.round(litersPerMinute * 10)))
+            : 0; // No heating -> no flow
+        await flowMeterEndpoint.setStateOf(FlowMeasurementServer, {
+            measuredValue: measuredFlow,
+        });
+    }
 
     await updateForecast();
 
