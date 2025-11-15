@@ -249,25 +249,39 @@ var currentHeatingScheduleIndex = 0;
 
 // Track previous setpoint to calculate change amount
 var previousSetpoint = 2000; // Initial default value
+var isUpdatingSetpointAttributes = false; // Prevent recursive updates
 
 thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
     await updateSystem();
 });
 
 thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
+    // Prevent recursive updates when we're setting attributes ourselves
+    if (isUpdatingSetpointAttributes) {
+        return;
+    }
+    
     // Calculate the change amount (new value - previous value)
     const changeAmount = value - previousSetpoint;
+    
+    console.log(`Setpoint changed from ${previousSetpoint} to ${value}, change amount: ${changeAmount}`);
     
     // Update previous setpoint for next change
     previousSetpoint = value;
     
     // When setpoint is manually changed, enable setpoint hold to override the schedule
-    await thermostatEndpoint.setStateOf(ThermostatServer, {
-        temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
-        setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
-        setpointChangeAmount: changeAmount,
-        setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
-    } as any);
+    isUpdatingSetpointAttributes = true;
+    try {
+        await thermostatEndpoint.setStateOf(ThermostatServer, {
+            temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
+            setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
+            setpointChangeAmount: changeAmount,
+            setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+        } as any);
+        console.log('Setpoint hold attributes updated successfully');
+    } finally {
+        isUpdatingSetpointAttributes = false;
+    }
     
     await updateSystem();
 });
@@ -677,13 +691,19 @@ async function applyScheduleForCurrentHour() {
             previousSetpoint = newSetpoint;
             
             // When schedule is automatically applied, turn off setpoint hold
-            await thermostatEndpoint.setStateOf(ThermostatServer, { 
-                occupiedHeatingSetpoint: newSetpoint,
-                temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff,
-                setpointChangeSource: Thermostat.SetpointChangeSource.Schedule,
-                setpointChangeAmount: null,
-                setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
-            } as any);
+            // Set flag to prevent the occupiedHeatingSetpoint$Changed handler from interfering
+            isUpdatingSetpointAttributes = true;
+            try {
+                await thermostatEndpoint.setStateOf(ThermostatServer, { 
+                    occupiedHeatingSetpoint: newSetpoint,
+                    temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff,
+                    setpointChangeSource: Thermostat.SetpointChangeSource.Schedule,
+                    setpointChangeAmount: null,
+                    setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+                } as any);
+            } finally {
+                isUpdatingSetpointAttributes = false;
+            }
             await updateSystem();
         }
 
