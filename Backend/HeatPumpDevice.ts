@@ -232,7 +232,10 @@ async function updateForecast() {
         await heatpumpEndpoint.setStateOf(DeviceEnergyManagementServer, {
             forecast: null
         } as any);
-
+        // Set flowMeterEndpoint measuredValue to zero when heating is off
+        await flowMeterEndpoint.setStateOf(FlowMeasurementServer, {
+            measuredValue: 0
+        });
     }
     else {
         // One slot per schedule period.
