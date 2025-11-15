@@ -108,7 +108,8 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
     thermostat: {
         controlSequenceOfOperation: 2, // Heating only
         systemMode: 0, // Off,
-        localTemperature: 2000, // 20.00 °C,
+        localTemperature: 1800, // 18.00 °C (initial default)
+        externalMeasuredIndoorTemperature: 1800, // Provide a default so localTemperature is not nulled
         outdoorTemperature: 1500, // 15.00 °C,
         occupiedHeatingSetpoint: 2000, // 20.00 °C,
         absMinHeatSetpointLimit: 700, // 7.00 °C,
@@ -316,6 +317,8 @@ var matchingHeatingSchedule = heatingSchedule.find(hs => hs.hour <= currentHour 
 currentHeatingScheduleIndex = heatingSchedule.indexOf(matchingHeatingSchedule!);
 
 await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matchingHeatingSchedule!.targetTemperature * 100 } as any);
+// Reinforce a default indoor temperature after initialization
+await thermostatEndpoint.setStateOf(ThermostatServer, { localTemperature: 1800 } as any);
 
 const app = express();
 app.use(express.json());
