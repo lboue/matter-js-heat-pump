@@ -251,41 +251,6 @@ var currentHeatingScheduleIndex = 0;
 var previousSetpoint = 2000; // Initial default value
 var isUpdatingSetpointAttributes = false; // Prevent recursive updates
 
-thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
-    await updateSystem();
-});
-
-thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
-    // Prevent recursive updates when we're setting attributes ourselves
-    if (isUpdatingSetpointAttributes) {
-        return;
-    }
-    
-    // Calculate the change amount (new value - previous value)
-    const changeAmount = value - previousSetpoint;
-    
-    console.log(`Setpoint changed from ${previousSetpoint} to ${value}, change amount: ${changeAmount}`);
-    
-    // Update previous setpoint for next change
-    previousSetpoint = value;
-    
-    // When setpoint is manually changed, enable setpoint hold to override the schedule
-    isUpdatingSetpointAttributes = true;
-    try {
-        await thermostatEndpoint.setStateOf(ThermostatServer, {
-            temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
-            setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
-            setpointChangeAmount: changeAmount,
-            setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
-        } as any);
-        console.log('Setpoint hold attributes updated successfully');
-    } finally {
-        isUpdatingSetpointAttributes = false;
-    }
-    
-    await updateSystem();
-});
-
 async function updateForecast() {
 
     console.log("Updating Forecast...");
@@ -461,6 +426,43 @@ previousSetpoint = matchingHeatingSchedule!.targetTemperature * 100;
 await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: previousSetpoint } as any);
 // Reinforce a default indoor temperature after initialization
 await thermostatEndpoint.setStateOf(ThermostatServer, { localTemperature: 1800 } as any);
+
+// Register event handlers AFTER node is started and endpoints are initialized
+thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
+    await updateSystem();
+});
+
+thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
+    // Prevent recursive updates when we're setting attributes ourselves
+    if (isUpdatingSetpointAttributes) {
+        console.log('Skipping event handler due to internal update');
+        return;
+    }
+    
+    // Calculate the change amount (new value - previous value)
+    const changeAmount = value - previousSetpoint;
+    
+    console.log(`Setpoint changed from ${previousSetpoint} to ${value}, change amount: ${changeAmount}`);
+    
+    // Update previous setpoint for next change
+    previousSetpoint = value;
+    
+    // When setpoint is manually changed, enable setpoint hold to override the schedule
+    isUpdatingSetpointAttributes = true;
+    try {
+        await thermostatEndpoint.setStateOf(ThermostatServer, {
+            temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
+            setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
+            setpointChangeAmount: changeAmount,
+            setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+        } as any);
+        console.log('Setpoint hold attributes updated successfully');
+    } finally {
+        isUpdatingSetpointAttributes = false;
+    }
+    
+    await updateSystem();
+});
 
 const app = express();
 app.use(express.json());
