@@ -252,6 +252,14 @@ thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) =>
 });
 
 thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (value: any) => {
+    // When setpoint is manually changed, enable setpoint hold to override the schedule
+    await thermostatEndpoint.setStateOf(ThermostatServer, {
+        temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
+        setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
+        setpointChangeAmount: value - thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint,
+        setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+    } as any);
+    
     await updateSystem();
 });
 
@@ -652,7 +660,14 @@ async function applyScheduleForCurrentHour() {
         const matching = heatingSchedule.find(hs => hs.hour <= currentHour && hs.endHour >= currentHour);
         if (matching) {
             currentHeatingScheduleIndex = heatingSchedule.indexOf(matching);
-            await thermostatEndpoint.setStateOf(ThermostatServer, { occupiedHeatingSetpoint: matching.targetTemperature * 100 } as any);
+            // When schedule is automatically applied, turn off setpoint hold
+            await thermostatEndpoint.setStateOf(ThermostatServer, { 
+                occupiedHeatingSetpoint: matching.targetTemperature * 100,
+                temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff,
+                setpointChangeSource: Thermostat.SetpointChangeSource.Schedule,
+                setpointChangeAmount: null,
+                setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+            } as any);
             await updateSystem();
         }
 
