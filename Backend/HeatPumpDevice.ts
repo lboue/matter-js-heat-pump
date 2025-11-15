@@ -117,6 +117,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
         piHeatingDemand: 0, // Initial heating demand in percent (0-100)
+        thermostatRunningState: { heat: false, cool: false, fan: false, heatStage2: false, coolStage2: false, fanStage2: false, fanStage3: false }, // Initial: all flags off
     }
 });
 
@@ -474,9 +475,15 @@ async function updateSystem() {
         measuredValue: measuredFlow,
     });
     
-    // Update PIHeatingDemand (calculated earlier in this function)
+    // Update PIHeatingDemand and ThermostatRunningState (calculated earlier in this function)
+    // ThermostatRunningState bitmap: bit 0 = Heat State On (0x01), bit 1 = Cool State On (0x02)
+    // Running when system is in heating mode and there's demand
+    const isHeating = thermostatEndpoint.state.thermostat.systemMode === 4 && piHeatingDemand > 0;
+    const thermostatRunningState = { heat: isHeating, cool: false, fan: false, heatStage2: false, coolStage2: false, fanStage2: false, fanStage3: false };
+    
     await thermostatEndpoint.setStateOf(ThermostatServer, {
         piHeatingDemand: piHeatingDemand,
+        thermostatRunningState: thermostatRunningState,
     } as any);
 
     await updateForecast();
