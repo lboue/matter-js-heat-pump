@@ -5,4 +5,8 @@
   - [x] SetpointChangeAmount
   - [x] SetpointChangeSourceTimestamp
 - [x] ThermostatRunningState
-     
+- [x] RemperatureSetpointHold
+- [x] TemperatureSetpointHoldDuration
+- [x] SetpointHoldExpiryTimestamp
+- [x] ThermostatProgrammingOperationMode
+- [x] PiHeatingDemand
