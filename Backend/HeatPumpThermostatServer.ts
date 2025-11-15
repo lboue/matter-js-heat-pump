@@ -7,5 +7,13 @@ export class HeatPumpThermostatServer extends ThermostatServer.with(Thermostat.F
     override async setpointRaiseLower(request: Thermostat.SetpointRaiseLowerRequest): Promise<void> {
         console.log("Setpoint Raise Lower called with amount:", request.amount);
     }
+
+    /**
+     * Update the PIHeatingDemand attribute
+     * @param value - Heating demand percentage (0-100)
+     */
+    updatePIHeatingDemand(value: number) {
+        this.state.piHeatingDemand = Math.max(0, Math.min(100, value));
+    }
     
 }
