@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "start": "node --loader ts-node/esm HeatPumpDevice.ts",
+    "dev": "node --loader ts-node/esm --watch HeatPumpDevice.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "type": "module",
