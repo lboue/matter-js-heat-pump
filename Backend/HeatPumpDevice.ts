@@ -118,6 +118,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         minHeatSetpointLimit: 700, // 7.00 °C,
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
+        piHeatingDemand: 0, // Initial heating demand in percent (0-100)
     }
 });
 
@@ -443,6 +444,27 @@ async function updateSystem() {
     await heatpumpEndpoint.setStateOf(FlowMeasurementServer, {
         measuredValue: measuredFlow,
     });
+    
+    // Calculate and update PIHeatingDemand
+    // This is the level of heating demanded by the PI loop in percent (0-100)
+    var piHeatingDemand = 0;
+    if (thermostatEndpoint.state.thermostat.systemMode === 4) { // Heating mode
+        const localTemp = thermostatEndpoint.state.thermostat.localTemperature;
+        if (localTemp !== null) {
+            const localTemperature = localTemp / 100; // Convert from 0.01°C units
+            const setpoint = thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100;
+            const temperatureDelta = setpoint - localTemperature;
+            
+            // Calculate demand as a percentage based on temperature delta
+            // Maximum delta is assumed to be 5°C for 100% demand
+            const maxDelta = 5.0;
+            piHeatingDemand = Math.max(0, Math.min(100, Math.round((temperatureDelta / maxDelta) * 100)));
+        }
+    }
+    
+    await thermostatEndpoint.setStateOf(ThermostatServer, {
+        piHeatingDemand: piHeatingDemand,
+    } as any);
 
     await updateForecast();
 
