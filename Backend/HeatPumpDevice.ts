@@ -118,6 +118,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         minHeatSetpointLimit: 700, // 7.00 °C,
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
+        piHeatingDemand: 0, // 0-100%, initially 0
     }
 });
 
@@ -328,6 +329,7 @@ app.get("/status", (_, response) => {
         currentHour,
         targetTemperature: thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
+        piHeatingDemand: thermostatEndpoint.state.thermostat.piHeatingDemand,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
         // activeHotWaterScheduleIndex: currentHotWaterScheduleIndex // Not currently used
     };
@@ -444,6 +446,26 @@ async function updateSystem() {
         measuredValue: measuredFlow,
     });
 
+    // Calculate PIHeatingDemand (0-100%) based on temperature difference and system mode
+    var piHeatingDemand = 0;
+    if (thermostatEndpoint.state.thermostat.systemMode === 4) {
+        // When heating is active, calculate demand based on temperature difference
+        const localTemperature = (thermostatEndpoint.state.thermostat.localTemperature ?? 2000) / 100;
+        const temperatureDifference = targetTemperature - localTemperature;
+        
+        // PI demand calculation: proportional to temperature difference
+        // Clamped between 0 and 100, with higher demand for larger temperature differences
+        // Using a scaling factor where 5°C difference = 100% demand
+        const demandScaleFactor = 20; // 100% / 5°C = 20% per °C
+        piHeatingDemand = Math.max(0, Math.min(100, Math.round(temperatureDifference * demandScaleFactor)));
+    }
+
+    // Update PIHeatingDemand attribute via the thermostat behavior
+    await thermostatEndpoint.act(async agent => {
+        const thermostat = agent.get(HeatPumpThermostatServer);
+        thermostat.updatePIHeatingDemand(piHeatingDemand);
+    });
+
     await updateForecast();
 
     updateClients();
@@ -456,6 +478,7 @@ function updateClients() {
         targetTemperature: thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100,
         flowTemperature: (flowSensorEndpoint.state.temperatureMeasurement.measuredValue ?? 0) / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
+        piHeatingDemand: thermostatEndpoint.state.thermostat.piHeatingDemand,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
         // activeHotWaterScheduleIndex: currentHotWaterScheduleIndex // Not currently used
     });
