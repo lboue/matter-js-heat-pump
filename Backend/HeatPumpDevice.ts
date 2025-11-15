@@ -83,6 +83,8 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
     deviceEnergyManagement: {
         esaType: DeviceEnergyManagement.EsaType.SpaceHeating,
         esaState: DeviceEnergyManagement.EsaState.Online,
+        absMinPower: 250000, // 250W in mW
+        absMaxPower: 5000000, // 5000W in mW
         forecast: {
             forecastId: 0,
             activeSlotNumber: null,
