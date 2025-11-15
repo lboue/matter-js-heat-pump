@@ -2,7 +2,7 @@ import express from "express";
 import http from "http"
 import { Server } from "socket.io";
 import cors from "cors";
-import { ServerNode, Logger, Bytes } from "@matter/main";
+import { ServerNode, Logger /*, Bytes */ } from "@matter/main";
 import { MeasurementType } from "@matter/main/types";
 import { HeatPumpDevice } from "@matter/main/devices/heat-pump";
 import { ThermostatDevice } from "@matter/main/devices/thermostat";
@@ -107,38 +107,6 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         minHeatSetpointLimit: 700, // 7.00 °C,
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
-        scheduleTypes: [{
-            systemMode: 4, // Heating,
-            numberOfSchedules: 10,
-            scheduleTypeFeatures: {
-                supportsSetpoints: true,
-            }
-        }],
-        numberOfSchedules: 1,
-        numberOfScheduleTransitions: 5,
-        activeScheduleHandle: Bytes.fromHex("0001"),
-        schedules: [{
-            scheduleHandle: Bytes.fromHex("0001"),
-            systemMode: 4,
-            name: "Default Heating Schedule",
-            transitions: [{
-                dayOfWeek: {
-                    monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: true
-                },
-                heatingSetpoint: 2100,
-                transitionTime: 330,
-                systemMode: 4
-            },
-            {
-                dayOfWeek: {
-                    monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: true, sunday: true
-                },
-                heatingSetpoint: 1600,
-                transitionTime: 1380,
-                systemMode: 4
-            }],
-            builtIn: true,
-        }],
     }
 });
 
@@ -151,7 +119,7 @@ var now = new Date();
 var currentHour = now.getHours();
 
 var currentHeatingScheduleIndex = 0;
-var currentHotWaterScheduleIndex = 0;
+// var currentHotWaterScheduleIndex = 0; // Not currently used
 
 thermostatEndpoint.events.thermostat.systemMode$Changed.on(async (value: any) => {
     await updateSystem();
@@ -350,7 +318,7 @@ app.get("/status", (_, response) => {
         targetTemperature: thermostatEndpoint.state.thermostat.occupiedHeatingSetpoint / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
-        activeHotWaterScheduleIndex: currentHotWaterScheduleIndex
+        // activeHotWaterScheduleIndex: currentHotWaterScheduleIndex // Not currently used
     };
 
     response.send(status);
@@ -370,15 +338,7 @@ app.get("/outdoortemperatures", async (request, response) => {
 });
 
 app.get("/heatingschedule", async (request, response) => {
-
-    // Get the current schedule from the thermostat
-    //
-    var schedule = thermostatEndpoint.state.thermostat.schedules[0];
-
-    // TODO Convert it into something digestible for the UI.
-    //
-    console.log("Schedule:", schedule);
-
+    // Return the heating schedule managed locally (not from Matter cluster)
     response.send(heatingSchedule);
 });
 
@@ -478,7 +438,7 @@ function updateClients() {
         flowTemperature: (flowSensorEndpoint.state.temperatureMeasurement.measuredValue ?? 0) / 100,
         power: heatpumpEndpoint.state.electricalPowerMeasurement.activePower,
         activeHeatingScheduleIndex: currentHeatingScheduleIndex,
-        activeHotWaterScheduleIndex: currentHotWaterScheduleIndex
+        // activeHotWaterScheduleIndex: currentHotWaterScheduleIndex // Not currently used
     });
 }
 
