@@ -23,6 +23,9 @@ import fs from "fs";
 
 const logger = Logger.get("ComposedDeviceNode");
 
+// Initialize Socket.IO reference early to avoid TDZ issues in callbacks
+let io: Server | undefined;
+
 const node = new ServerNode({
     productDescription: {},
     basicInformation: {
@@ -315,7 +318,7 @@ app.use(express.json());
 app.use(cors());
 
 const server = http.createServer(app);
-const io = new Server(server, {
+io = new Server(server, {
     cors: {
         origin: "http://localhost:3001",
         methods: ["GET", "POST", "DELETE", "PUT"]
@@ -472,6 +475,7 @@ async function updateSystem() {
 }
 
 function updateClients() {
+    if (!io) return;
     io.emit('systemUpdated', {
         systemMode: thermostatEndpoint.state.thermostat.systemMode,
         currentHour,
