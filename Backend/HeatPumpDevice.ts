@@ -20,6 +20,7 @@ import { TemperatureMeasurementServer } from "@matter/main/behaviors/temperature
 import { ThermostatServer } from "@matter/main/behaviors/thermostat";
 import { FlowMeasurementServer } from "@matter/main/behaviors/flow-measurement";
 import { PowerSource } from "@matter/main/clusters/power-source";
+import { Thermostat } from "@matter/main/clusters/thermostat";
 import fs from "fs";
 
 const logger = Logger.get("ComposedDeviceNode");
@@ -117,7 +118,7 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         maxHeatSetpointLimit: 3000, // 30.00 °C,
         absMaxHeatSetpointLimit: 3000, // 30.00 °C,
         piHeatingDemand: 0, // Initial heating demand in percent (0-100)
-        setpointChangeSource: 0, // Manual
+        setpointChangeSource: Thermostat.SetpointChangeSource.Manual, // Default: Manual
         setpointChangeAmount: null, // Default: null
         setpointChangeSourceTimestamp: 0, // Default: 0
         thermostatRunningState: { heat: false, cool: false, fan: false, heatStage2: false, coolStage2: false, fanStage2: false, fanStage3: false }, // Initial: all flags off
