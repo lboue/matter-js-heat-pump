@@ -17,6 +17,7 @@ import { ElectricalPowerMeasurementServer } from "@matter/main/behaviors/electri
 import { ElectricalEnergyMeasurementServer } from "@matter/main/behaviors/electrical-energy-measurement";
 import { TemperatureMeasurementServer } from "@matter/main/behaviors/temperature-measurement";
 import { ThermostatServer } from "@matter/main/behaviors/thermostat";
+import { FlowMeasurementServer } from "@matter/main/behaviors/flow-measurement";
 import { PowerSource } from "@matter/main/clusters/power-source";
 import fs from "fs";
 
@@ -38,7 +39,9 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
     PowerTopologyServer.with("NodeTopology"),
     ElectricalPowerMeasurementServer.with("AlternatingCurrent"),
     ElectricalEnergyMeasurementServer.with("ImportedEnergy", "CumulativeEnergy"),
-    DeviceEnergyManagementServer.with("PowerForecastReporting")), {
+    DeviceEnergyManagementServer.with("PowerForecastReporting"),
+    FlowMeasurementServer
+), {
     id: "heat-pump",
     // heatPump: {
     //     tagList: [PowerSourceNs.Grid],
@@ -79,6 +82,12 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
         cumulativeEnergyImported: {
             energy: 422000000,
         }
+    },
+    flowMeasurement: {
+        measuredValue: null,
+        minMeasuredValue: 0,
+        maxMeasuredValue: 65533,
+        // tolerance: 0, // optional
     },
     deviceEnergyManagement: {
         esaType: DeviceEnergyManagement.EsaType.SpaceHeating,
@@ -405,7 +414,7 @@ async function updateSystem() {
     var deltaT = 5;
 
     var flowTemperature = Math.abs(outdoorTemperature * weatherCurveSlope) + weatherCurveOffset;
-    var flowRate = heatRequired / (4200 * deltaT); // in liters per second
+    var flowRate = heatRequired / (4200 * deltaT); // liters per second (approx for water)
 
     await flowSensorEndpoint.setStateOf(TemperatureMeasurementServer, {
         measuredValue: flowTemperature * 100,
@@ -425,6 +434,14 @@ async function updateSystem() {
 
     await heatpumpEndpoint.setStateOf(ElectricalPowerMeasurementServer, {
         activePower: currentPower,
+    });
+
+    // Publish flow as Flow Measurement cluster value in 0.1 L/min units
+    const litersPerMinute = flowRate * 60;
+    // FlowMeasurement.MeasuredValue is uint16, spec-constrained by Min/Max; unit: 0.1 L/min
+    const measuredFlow = Math.max(0, Math.min(65533, Math.round(litersPerMinute * 10)));
+    await heatpumpEndpoint.setStateOf(FlowMeasurementServer, {
+        measuredValue: measuredFlow,
     });
 
     await updateForecast();
