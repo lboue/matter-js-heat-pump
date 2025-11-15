@@ -461,6 +461,7 @@ thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (v
             setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
         } as any);
         console.log('Setpoint hold attributes updated successfully');
+        console.log(`Setpoint hold expiry timestamp: ${Math.floor(Date.now() / 1000) + (holdDuration * 60)}`);
     } finally {
         isUpdatingSetpointAttributes = false;
     }
