@@ -270,6 +270,38 @@ logger.info(node);
 
 await node.start();
 
+/****
+ * Load the Outdoor temperature Forecast
+ ****/
+
+console.log("Fetching weather forecast...");
+
+const params = {
+    "latitude": 52.4143,
+    "longitude": -1.7809,
+    "hourly": "temperature_2m",
+    "timezone": "Europe/London",
+    "start_date": "2024-11-28",
+    "end_date": "2024-11-28",
+};
+
+const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${params.latitude}&longitude=${params.longitude}&timezone=${params.timezone}&hourly=temperature_2m&start_date=${params.start_date}&end_date=${params.end_date}`;
+
+const response = await fetch(url);
+
+const responseData: any = await response.json();
+
+const hourlyData = responseData.hourly;
+
+const temperatureByHour = hourlyData.time.map((t: any, i: number) => {
+    var time = new Date(t);
+
+    return {
+        hour: time.getHours(),
+        temperature: hourlyData.temperature_2m[i]
+    }
+});
+
 var heatingSchedule = [
     {
         hour: 0,
@@ -390,38 +422,6 @@ function predict(features: any) {
     }
     return prediction;
 }
-
-/****
- * Load the Outdoor temperature Forecast
- ****/
-
-console.log("Fetching weather forecast...");
-
-const params = {
-    "latitude": 52.4143,
-    "longitude": -1.7809,
-    "hourly": "temperature_2m",
-    "timezone": "Europe/London",
-    "start_date": "2024-11-28",
-    "end_date": "2024-11-28",
-};
-
-const url = `https://archive-api.open-meteo.com/v1/archive?latitude=${params.latitude}&longitude=${params.longitude}&timezone=${params.timezone}&hourly=temperature_2m&start_date=${params.start_date}&end_date=${params.end_date}`;
-
-const response = await fetch(url);
-
-const responseData: any = await response.json();
-
-const hourlyData = responseData.hourly;
-
-const temperatureByHour = hourlyData.time.map((t: any, i: number) => {
-    var time = new Date(t);
-
-    return {
-        hour: time.getHours(),
-        temperature: hourlyData.temperature_2m[i]
-    }
-});
 
 async function updateSystem() {
 
