@@ -101,7 +101,7 @@ var heatpumpEndpoint = await node.add(HeatPumpDevice.with(HeatPumpDeviceLogic,
             }],
         },
         cumulativeEnergyImported: {
-            energy: 422000000,  // in 0.001 kWh units (i.e., 422,000 kWh)
+            energy: 1000,  // in 0.001 kWh units (i.e., 1 kWh)
         }
     },
     deviceEnergyManagement: {
