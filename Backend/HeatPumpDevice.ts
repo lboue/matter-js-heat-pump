@@ -102,11 +102,11 @@ var thermostatEndpoint = await node.add(ThermostatDevice.with(HeatPumpThermostat
         systemMode: 0, // Off,
         localTemperature: 2000, // 20.00 °C,
         outdoorTemperature: 1500, // 15.00 °C,
-        occupiedHeatingSetpoint: 2000, // 20.00 °C
-        absMinHeatSetpointLimit: 700, // 7.00 °C
-        minHeatSetpointLimit: 700, // 7.00 °C
-        maxHeatSetpointLimit: 3000, // 30.00 °C
-        absMaxHeatSetpointLimit: 3000, // 30.00 °C
+        occupiedHeatingSetpoint: 2000, // 20.00 °C,
+        absMinHeatSetpointLimit: 700, // 7.00 °C,
+        minHeatSetpointLimit: 700, // 7.00 °C,
+        maxHeatSetpointLimit: 3000, // 30.00 °C,
+        absMaxHeatSetpointLimit: 3000, // 30.00 °C,
         scheduleTypes: [{
             systemMode: 4, // Heating,
             numberOfSchedules: 10,
