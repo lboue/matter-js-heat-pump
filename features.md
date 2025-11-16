@@ -5,7 +5,7 @@
   - [x] SetpointChangeAmount
   - [x] SetpointChangeSourceTimestamp
 - [x] ThermostatRunningState
-- [x] RemperatureSetpointHold
+- [x] TemperatureSetpointHold
 - [x] TemperatureSetpointHoldDuration
 - [x] SetpointHoldExpiryTimestamp
 - [x] ThermostatProgrammingOperationMode
