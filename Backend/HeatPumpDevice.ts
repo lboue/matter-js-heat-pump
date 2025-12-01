@@ -30,6 +30,7 @@ import { Thermostat } from "@matter/main/clusters/thermostat";
 import { DeviceEnergyManagementMode } from "@matter/main/clusters/device-energy-management-mode";
 
 import fs from "fs";
+import { toMatterEpochSeconds } from "./utils/time.js";
 import { DeviceEnergyManagementModeServer } from "@matter/main/behaviors/device-energy-management-mode";
 
 const logger = Logger.get("ComposedDeviceNode");
@@ -458,7 +459,7 @@ thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (v
             setpointHoldExpiryTimestamp: Math.floor(Date.now() / 1000) + (holdDuration * 60), // Current time + holdDuration minutes
             setpointChangeSource: Thermostat.SetpointChangeSource.Manual,
             setpointChangeAmount: changeAmount,
-            setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+            setpointChangeSourceTimestamp: toMatterEpochSeconds(),
         } as any);
         console.log('Setpoint hold attributes updated successfully');
         console.log(`Setpoint hold expiry: ${new Date((Math.floor(Date.now() / 1000) + (holdDuration * 60)) * 1000).toISOString()}`);
@@ -706,7 +707,7 @@ async function applyScheduleForCurrentHour() {
                     temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOff,
                     setpointChangeSource: Thermostat.SetpointChangeSource.Schedule,
                     setpointChangeAmount: null,
-                    setpointChangeSourceTimestamp: Math.floor(Date.now() / 1000),
+                    setpointChangeSourceTimestamp: toMatterEpochSeconds(),
                 } as any);
             } finally {
                 isUpdatingSetpointAttributes = false;
