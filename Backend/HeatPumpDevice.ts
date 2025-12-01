@@ -453,6 +453,10 @@ thermostatEndpoint.events.thermostat.occupiedHeatingSetpoint$Changed.on(async (v
     isUpdatingSetpointAttributes = true;
     let holdDuration = 30; // Hold for 30 minutes
     try {
+        // Log both Unix and Matter epoch timestamps for traceability
+        const unixNow = Math.floor(Date.now() / 1000);
+        const matterNow = toMatterEpochSeconds(unixNow);
+        console.log(`[SetpointChange] Timestamp UnixSeconds=${unixNow} MatterSeconds=${matterNow}`);
         await thermostatEndpoint.setStateOf(ThermostatServer, {
             temperatureSetpointHold: Thermostat.TemperatureSetpointHold.SetpointHoldOn,
             temperatureSetpointHoldDuration: holdDuration,
